@@ -1,0 +1,111 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Mulheres na Engenharia</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      text-align: center;
+      background: black;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+    #canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    #captureBtn {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 20px;
+      background: #ff4081;
+      border: none;
+      border-radius: 10px;
+      font-size: 18px;
+      cursor: pointer;
+    }
+    h1 {
+      position: absolute;
+      top: 10px;
+      width: 100%;
+      text-align: center;
+      font-size: 24px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Mulheres na Engenharia</h1>
+  <video id="video" autoplay playsinline style="display:none;"></video>
+  <canvas id="canvas"></canvas>
+  <button id="captureBtn">Tirar Foto</button>
+
+  <script>
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const captureBtn = document.getElementById('captureBtn');
+
+    const background = new Image();
+    background.src = 'background.jpg';
+
+    async function setupCamera() {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      video.srcObject = stream;
+
+      return new Promise((resolve) => {
+        video.onloadedmetadata = () => {
+          resolve(video);
+        };
+      });
+    }
+
+    function chromaKey(frame) {
+      const l = frame.data.length / 4;
+      for (let i = 0; i < l; i++) {
+        const r = frame.data[i * 4 + 0];
+        const g = frame.data[i * 4 + 1];
+        const b = frame.data[i * 4 + 2];
+
+        if (g > 100 && r < 100 && b < 100) {
+          frame.data[i * 4 + 3] = 0;
+        }
+      }
+      return frame;
+    }
+
+    async function render() {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      let frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      frame = chromaKey(frame);
+      ctx.putImageData(frame, 0, 0);
+
+      requestAnimationFrame(render);
+    }
+
+    captureBtn.addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = 'foto_mulheres_na_engenharia.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+
+    setupCamera().then(render);
+  </script>
+</body>
+</html>
